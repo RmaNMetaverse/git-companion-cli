@@ -1,0 +1,100 @@
+#!/bin/sh
+# Git Companion @APP_VERSION@. Standalone online setup; no preinstalled Python needed.
+set -eu
+TARGET_OS='@TARGET_OS@'
+UV_VERSION='@UV_VERSION@'
+WHEEL_NAME='@WHEEL_NAME@'
+WHEEL_SHA256='@WHEEL_SHA256@'
+
+fail() { printf '\nSetup failed: %s\n' "$*" >&2; exit 1; }
+say() { printf '\n%s\n' "$*"; }
+
+[ "$(uname -s)" = "$TARGET_OS" ] || fail "This setup file is for $TARGET_OS. Download the setup for your operating system."
+case "$(uname -m)" in
+    x86_64|amd64) arch=x86_64 ;;
+    arm64|aarch64) arch=aarch64 ;;
+    *) fail 'Supported processors are Intel/AMD 64-bit and ARM64.' ;;
+esac
+if [ "$TARGET_OS" = Darwin ]; then
+    target="$arch-apple-darwin"
+    default_root="$HOME/Library/Application Support/GitCompanion"
+else
+    target="$arch-unknown-linux-musl"
+    default_root="${XDG_DATA_HOME:-$HOME/.local/share}/git-companion"
+fi
+case "$target" in
+@UV_POSIX_HASHES@
+esac
+root=${GC_INSTALL_ROOT:-$default_root}
+bin_dir=${GC_BIN_DIR:-$HOME/.local/bin}
+case "$root:$bin_dir" in *'
+'*) fail 'Installation paths cannot contain newline characters.' ;; esac
+case "$root" in /*) ;; *) fail 'GC_INSTALL_ROOT must be an absolute path.' ;; esac
+case "$bin_dir" in /*) ;; *) fail 'GC_BIN_DIR must be an absolute path.' ;; esac
+
+command -v tar >/dev/null 2>&1 || fail 'The system tar command is required.'
+download() {
+    if command -v curl >/dev/null 2>&1; then
+        curl --fail --location --retry 3 --connect-timeout 30 --proto '=https' --tlsv1.2 "$1" -o "$2"
+    elif command -v wget >/dev/null 2>&1; then
+        wget --https-only --tries=3 -O "$2" "$1"
+    else
+        fail 'The system curl or wget command is required.'
+    fi
+}
+digest() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$1" | awk '{print $1}'
+    else
+        fail 'The system sha256sum or shasum command is required.'
+    fi
+}
+
+say 'Git Companion setup - installing for your user account'
+mkdir -p "$root" "$bin_dir"
+work=$(mktemp -d "$root/.setup-XXXXXXXX")
+# Only our freshly-created, absolute temporary directory is removed.
+trap 'rm -rf -- "$work"' EXIT
+trap 'exit 130' INT TERM
+archive="uv-$target.tar.gz"
+say '[1/4] Downloading the private setup tool...'
+download "https://github.com/astral-sh/uv/releases/download/$UV_VERSION/$archive" "$work/uv.tar.gz"
+[ "$(digest "$work/uv.tar.gz")" = "$uv_sha256" ] || fail 'Setup-tool checksum verification failed.'
+tar -xzf "$work/uv.tar.gz" -C "$work"
+uv="$work/uv-$target/uv"
+[ -x "$uv" ] || fail 'Downloaded setup tool is missing.'
+
+sed -n '/^# WHEEL_PAYLOAD_START$/,/^# WHEEL_PAYLOAD_END$/p' "$0" | sed '1d;$d;s/^# //' > "$work/wheel.b64"
+if [ "$TARGET_OS" = Darwin ]; then
+    base64 -D < "$work/wheel.b64" > "$work/$WHEEL_NAME"
+else
+    base64 -d < "$work/wheel.b64" > "$work/$WHEEL_NAME"
+fi
+[ "$(digest "$work/$WHEEL_NAME")" = "$WHEEL_SHA256" ] || fail 'The embedded application is corrupt. Download the setup again.'
+
+export UV_PYTHON_INSTALL_DIR="$root/python"
+export UV_CACHE_DIR="$root/cache"
+export UV_PYTHON_DOWNLOADS=automatic
+export UV_PYTHON_PREFERENCE="${GC_PYTHON_PREFERENCE:-system}"
+env_dir="$root/environments/@APP_VERSION@-$(basename "$work")"
+say '[2/4] Checking Python; downloading a private runtime if needed...'
+"$uv" --no-config --quiet venv --python '>=3.10,<3.15' "$env_dir"
+python="$env_dir/bin/python"
+say '[3/4] Installing Git Companion and its UI libraries...'
+"$uv" --no-config pip install --python "$python" --index-url https://pypi.org/simple "$work/$WHEEL_NAME"
+"$python" -I -c 'import git_companion.app'
+"$python" -I -m git_companion --version
+say '[4/4] Registering the git-companion command...'
+if [ "${GC_SETUP_NO_PATH:-0}" = 1 ]; then
+    "$python" -I -m git_companion.install_support --bin "$bin_dir" --no-path
+else
+    "$python" -I -m git_companion.install_support --bin "$bin_dir"
+fi
+say 'Setup complete. Close and reopen your terminal, open any project folder, and type: git-companion'
+say 'Git and Git LFS will be checked automatically when you first open the app.'
+exit 0
+# WHEEL_PAYLOAD_START
+@WHEEL_BASE64_COMMENTS@
+# WHEEL_PAYLOAD_END

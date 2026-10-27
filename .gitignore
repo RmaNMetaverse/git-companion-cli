@@ -1,0 +1,15 @@
+.venv/
+.deps/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+screenshots/
+pytest-cache-files-*/
+.test-tmp*/
+.installer-test/
+dev/.cache/
+dev/artifacts/
+

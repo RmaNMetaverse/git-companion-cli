@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "git-companion-cli"
+version = "0.1.0"
+description = "A colorful, workflow-first terminal cockpit for Git and Git LFS"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["textual>=6.0,<7", "rich>=14,<15"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.11"]
+
+[project.scripts]
+git-companion = "git_companion.__main__:main"
+git-companion-cli = "git_companion.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/git_companion"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["dev/tests"]
+pythonpath = ["src"]
+cache_dir = "dev/.cache/pytest"
+
+[tool.ruff]
+line-length = 110
+cache-dir = "dev/.cache/ruff"
+extend-exclude = ["dev/.cache", "dev/artifacts"]
+

@@ -1,0 +1,95 @@
+@echo off
+setlocal DisableDelayedExpansion
+set "GC_SETUP_FILE=%~f0"
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText($env:GC_SETUP_FILE); $code=($text -split '(?m)^# POWERSHELL_START\r?$',2)[1]; & ([scriptblock]::Create($code))"
+set "GC_RESULT=%errorlevel%"
+if not "%GC_SETUP_NONINTERACTIVE%"=="1" pause
+exit /b %GC_RESULT%
+# POWERSHELL_START
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+function Invoke-Checked([string]$Program, [string[]]$Arguments) {
+    & $Program @Arguments
+    if ($LASTEXITCODE -ne 0) { throw "$Program exited with code $LASTEXITCODE" }
+}
+
+function Get-Sha256([string]$Path) {
+    $hasher = [Security.Cryptography.SHA256]::Create()
+    $stream = [IO.File]::OpenRead($Path)
+    try { return [BitConverter]::ToString($hasher.ComputeHash($stream)).Replace('-', '').ToLowerInvariant() }
+    finally { $stream.Dispose(); $hasher.Dispose() }
+}
+
+$work = $null
+try {
+    Write-Host "`nGit Companion setup - installing for your user account" -ForegroundColor Cyan
+    $architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+    switch ($architecture) {
+        'X64' { $target = 'x86_64-pc-windows-msvc'; $uvHash = '@UV_WINDOWS_X64_SHA256@' }
+        'ARM64' { $target = 'aarch64-pc-windows-msvc'; $uvHash = '@UV_WINDOWS_ARM64_SHA256@' }
+        default { throw 'Supported processors are Intel/AMD 64-bit and ARM64.' }
+    }
+    $root = if ($env:GC_INSTALL_ROOT) { $env:GC_INSTALL_ROOT } else { Join-Path $env:LOCALAPPDATA 'GitCompanion' }
+    $root = [IO.Path]::GetFullPath($root)
+    $bin = if ($env:GC_BIN_DIR) { [IO.Path]::GetFullPath($env:GC_BIN_DIR) } else { Join-Path $root 'bin' }
+    $null = New-Item -ItemType Directory -Path $root -Force
+    $work = Join-Path $root ('.setup-' + [guid]::NewGuid().ToString('N'))
+    $null = New-Item -ItemType Directory -Path $work
+    $archive = Join-Path $work 'uv.zip'
+    Write-Host "`n[1/4] Downloading the private setup tool..."
+    Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/astral-sh/uv/releases/download/@UV_VERSION@/uv-$target.zip" -OutFile $archive
+    if ((Get-Sha256 $archive) -ne $uvHash) {
+        throw 'Setup-tool checksum verification failed.'
+    }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [IO.Compression.ZipFile]::ExtractToDirectory($archive, (Join-Path $work 'tool'))
+    $uv = (Get-ChildItem -LiteralPath (Join-Path $work 'tool') -Filter uv.exe -Recurse -File | Select-Object -First 1).FullName
+    if (-not $uv) { throw 'Downloaded setup tool is missing.' }
+
+    $contents = [IO.File]::ReadAllText($env:GC_SETUP_FILE)
+    $payload = [regex]::Match($contents, '(?ms)^# WHEEL_PAYLOAD_START\r?\n(.*?)^# WHEEL_PAYLOAD_END').Groups[1].Value
+    $payload = $payload -replace '(?m)^# ', ''
+    $wheel = Join-Path $work '@WHEEL_NAME@'
+    [IO.File]::WriteAllBytes($wheel, [Convert]::FromBase64String($payload))
+    if ((Get-Sha256 $wheel) -ne '@WHEEL_SHA256@') {
+        throw 'The embedded application is corrupt. Download the setup again.'
+    }
+
+    $env:UV_PYTHON_INSTALL_DIR = Join-Path $root 'python'
+    $env:UV_CACHE_DIR = Join-Path $root 'cache'
+    $env:UV_PYTHON_DOWNLOADS = 'automatic'
+    $env:UV_PYTHON_PREFERENCE = if ($env:GC_PYTHON_PREFERENCE) { $env:GC_PYTHON_PREFERENCE } else { 'system' }
+    $environment = Join-Path $root ('environments\@APP_VERSION@-' + [guid]::NewGuid().ToString('N'))
+    Write-Host "`n[2/4] Checking Python; downloading a private runtime if needed..."
+    Invoke-Checked $uv @('--no-config', '--quiet', 'venv', '--python', '>=3.10,<3.15', $environment)
+    $python = Join-Path $environment 'Scripts\python.exe'
+    Write-Host "`n[3/4] Installing Git Companion and its UI libraries..."
+    Invoke-Checked $uv @('--no-config', 'pip', 'install', '--python', $python, '--index-url', 'https://pypi.org/simple', $wheel)
+    Invoke-Checked $python @('-I', '-c', 'import git_companion.app')
+    Invoke-Checked $python @('-I', '-m', 'git_companion', '--version')
+    Write-Host "`n[4/4] Registering the git-companion command..."
+    $helperArguments = @('-I', '-m', 'git_companion.install_support', '--bin', $bin)
+    if ($env:GC_SETUP_NO_PATH -eq '1') { $helperArguments += '--no-path' }
+    Invoke-Checked $python $helperArguments
+    Write-Host "`nSetup complete. Close and reopen your terminal, open any project folder, and type: git-companion" -ForegroundColor Green
+    Write-Host 'Git and Git LFS will be checked automatically when you first open the app.'
+    exit 0
+} catch {
+    Write-Host "`nSetup failed: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host 'Check your internet connection and run this setup file again. An existing installation is kept until the new runtime passes its checks.'
+    exit 1
+} finally {
+    if ($work -and (Test-Path -LiteralPath $work)) {
+        $resolvedWork = [IO.Path]::GetFullPath($work)
+        $expectedParent = [IO.Path]::GetFullPath($root).TrimEnd('\') + '\'
+        if ($resolvedWork.StartsWith($expectedParent, [StringComparison]::OrdinalIgnoreCase) -and
+            [IO.Path]::GetFileName($resolvedWork).StartsWith('.setup-')) {
+            Remove-Item -LiteralPath $resolvedWork -Recurse -Force
+        }
+    }
+}
+# WHEEL_PAYLOAD_START
+@WHEEL_BASE64_COMMENTS@
+# WHEEL_PAYLOAD_END

@@ -1,0 +1,39 @@
+name: Build standalone executables
+on: [workflow_dispatch]
+jobs:
+  setup-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install hatchling
+      - run: python -m hatchling build -t wheel -d dev/artifacts
+      - run: python -m dev.tools.build_installers dev/artifacts/git_companion_cli-0.1.0-py3-none-any.whl
+      - run: tar -czf dev/artifacts/git-companion-setup-files.tar.gz setup-windows.cmd setup-macos.command setup-linux.sh -C dev/artifacts setup-manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: git-companion-setup-files
+          path: |
+            setup-windows.cmd
+            setup-macos.command
+            setup-linux.sh
+            dev/artifacts/setup-manifest.json
+            dev/artifacts/git-companion-setup-files.tar.gz
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install . pyinstaller
+      - run: python -m PyInstaller --onefile --name git-companion --distpath dev/artifacts/standalone --workpath dev/.cache/pyinstaller --specpath dev/.cache --collect-all textual --collect-data git_companion dev/packaging/entrypoint.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: git-companion-${{ runner.os }}-${{ runner.arch }}
+          path: dev/artifacts/standalone/*
