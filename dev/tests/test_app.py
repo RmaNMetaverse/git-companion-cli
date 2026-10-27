@@ -125,6 +125,12 @@ async def test_search_results_navigation_clear_and_empty_state(tmp_path):
         await pilot.press("down")
         assert app.selected_command().id == "prune-force"
         await pilot.press("ctrl+f")
+        field.value = "git lfs prune --force --dry-run"
+        await pilot.pause()
+        assert app.selected_command().id == "prune-force-preview"
+        field.value = "git lfs prune --force"
+        await pilot.pause()
+        assert app.selected_command().id == "prune-force"  # new query chooses its best match
         field.value = "no-such-command-xyz"
         await pilot.pause()
         assert not app.visible_commands

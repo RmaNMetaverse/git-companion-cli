@@ -28,6 +28,8 @@ The app also checks for Git and Git LFS and attempts to install missing tools us
 
 Choose a workflow on the left, or search for what you want to do. Each action has a short, plain-language hint. **Details & examples** stays closed until you expand it; press **F2** for the selected action's examples, including in a small terminal window.
 
+The dedicated **Search all commands** box finds every included Git and Git LFS action, across all workflows. Search by a task (`save`, `Photoshop`), a command (`git lfs prune`), or flags (`--dry-run`). Suggestions update while you type. Press **Tab** or **Right** to accept an inline completion, **Down** to browse the results, and **Enter** to review your selection. **Ctrl+F** jumps to search; **Escape** clears it and returns to your workflow. Completing or selecting a command never runs it automatically.
+
 Examples show possibilities; they never run automatically. Fill in your own file names when reviewing an action. You can always see the actual command before running it. Actions that can discard work also show a warning and require confirmation.
 
 | Workflow | Use it to… |

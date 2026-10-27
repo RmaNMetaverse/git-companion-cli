@@ -27,6 +27,12 @@ async def main():
         app.query_one("#detail-help", Collapsible).collapsed = False
         await pilot.pause()
         print(app.save_screenshot("examples.svg", path=output))
+        field = app.query_one("#search", Input)
+        field.focus()
+        field.value = "git lfs pr"
+        field.cursor_position = len(field.value)
+        await pilot.pause()
+        print(app.save_screenshot("search.svg", path=output))
 
 
 if __name__ == "__main__":

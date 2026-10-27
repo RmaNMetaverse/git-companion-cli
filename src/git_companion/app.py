@@ -211,9 +211,7 @@ class CompanionApp(App):
                     id="search",
                     suggester=CommandSuggester(),
                 )
-                yield Static(
-                    "Tab or Right: complete  /  Down: suggestions  /  Enter: review", id="search-tip"
-                )
+                yield Static("Tab/Right: complete | Down: results | Enter: review", id="search-tip")
                 yield Static("", id="section", markup=False)
                 with Horizontal(id="browser"):
                     yield OptionList(id="commands")
@@ -325,7 +323,7 @@ class CompanionApp(App):
     def search_changed(self):
         field = self.query_one("#search", Input)
         self.search_mode = bool(field.value.strip()) or field.has_focus or self.search_mode
-        self.update_commands()
+        self.update_commands(reset_selection=True)
 
     @on(Input.Submitted, "#search")
     def search_submitted(self):
@@ -333,12 +331,12 @@ class CompanionApp(App):
         if self.visible_commands:
             self.review()
 
-    def update_commands(self):
+    def update_commands(self, reset_selection: bool = False):
         query = self.query_one("#search", Input).value
         category = None if query.strip() or self.search_mode else self.category
         commands = self.query_one("#commands", OptionList)
         old_id = None
-        if commands.highlighted is not None and commands.option_count:
+        if not reset_selection and commands.highlighted is not None and commands.option_count:
             old_id = commands.get_option_at_index(commands.highlighted).id
         self.visible_commands = search(query, category, self.state.recommendations)
         commands.clear_options()

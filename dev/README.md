@@ -18,6 +18,8 @@ dev/.cache/             Test and lint caches
 
 Every catalog action has one hint of at most 90 characters and two validated examples in `src/git_companion/guidance.py`. The list and details show its hint; the description and examples live in a collapsed panel. F2 opens a help dialog at any terminal size and toggles examples within a review dialog. Changing actions closes the examples; idle refreshes preserve an open panel. Example values are used only to build displayed sample commands; they do not populate forms or execute anything.
 
+Command discovery indexes every action's ID, friendly name, hint, description, full `git` syntax, flags, workflow name and examples. Full command and prefix matches rank above descriptive matches; otherwise equivalent matches prefer previews over destructive actions. `CommandSearch` uses Textual's inline suggestion renderer, with Tab/Right acceptance and Down navigation to the live results. Ctrl+F opens the complete catalog even with an empty query. Enter only opens the selected action's review form; no typed search text is passed to a shell. Argument placeholders are left to the review fields, rather than being filled by autocomplete.
+
 A colorful, keyboard-first terminal cockpit for **Git + Git LFS**, built around what you want to do next.
 
 Branch artwork, a lavender/mint/amber palette, live repository metrics, searchable actions, command previews, mouse support, responsive panels, dark/light themes, and streamed command output. Works from a terminal on Windows, Linux, and macOS. Setup handles Python and the app's dependencies automatically.
