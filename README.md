@@ -2,7 +2,7 @@
 
 A friendly, colorful home for your Git projects and large artwork files. Save versions, share work, try ideas and recover earlier changes without memorizing terminal commands.
 
-https://github.com/user-attachments/assets/962562af-7fc8-4bfe-adf2-0718bfd64cb9
+https://github.com/user-attachments/assets/96cf1b1e-b192-4c3c-9de7-39be6badba18
 
 ## Set up once
 
