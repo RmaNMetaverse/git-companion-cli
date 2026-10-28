@@ -2,9 +2,7 @@
 
 A friendly, colorful home for your Git projects and large artwork files. Save versions, share work, try ideas and recover earlier changes without memorizing terminal commands.
 
-[![Watch Git Companion: Find it. Learn it. Run it.](dev/media/teaser-action-60s-preview.gif)](dev/media/git-companion-action-teaser-60s.mp4)
-
-[Watch the 1:00 feature teaser · sound effects only](dev/media/git-companion-action-teaser-60s.mp4) · [Faster 46-second edit](dev/media/git-companion-action-teaser.mp4) · [Original 44-second teaser · with music](dev/media/git-companion-teaser.mp4)
+https://github.com/user-attachments/assets/962562af-7fc8-4bfe-adf2-0718bfd64cb9
 
 ## Set up once
 
