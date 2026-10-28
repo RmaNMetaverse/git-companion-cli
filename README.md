@@ -1,6 +1,6 @@
 # Git Companion
 
-A friendly, colorful home for your Git projects and large artwork files. Save versions, share work, try ideas and recover earlier changes without memorizing terminal commands.
+git/git-lfs Terminal Companion tool with searchable git commands, autocomplete, browsable list of git commands with hints, examples and help, with a Modern & Rich Terminal UI/UX (even includes mouse support) 
 
 https://github.com/user-attachments/assets/96cf1b1e-b192-4c3c-9de7-39be6badba18
 
