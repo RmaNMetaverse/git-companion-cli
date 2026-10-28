@@ -2,6 +2,10 @@
 
 A friendly, colorful home for your Git projects and large artwork files. Save versions, share work, try ideas and recover earlier changes without memorizing terminal commands.
 
+[![Watch Git Companion: Find it. Learn it. Run it.](dev/media/teaser-action-60s-preview.gif)](dev/media/git-companion-action-teaser-60s.mp4)
+
+[Watch the 1:00 feature teaser · sound effects only](dev/media/git-companion-action-teaser-60s.mp4) · [Faster 46-second edit](dev/media/git-companion-action-teaser.mp4) · [Original 44-second teaser · with music](dev/media/git-companion-teaser.mp4)
+
 ## Set up once
 
 Choose the file for your computer, right here in this folder:
@@ -31,6 +35,8 @@ Choose a workflow on the left, or search for what you want to do. Each action ha
 The dedicated **Search all commands** box finds every included Git and Git LFS action, across all workflows. Search by a task (`save`, `Photoshop`), a command (`git lfs prune`), or flags (`--dry-run`). Suggestions update while you type. Press **Tab** or **Right** to accept an inline completion, **Down** to browse the results, and **Enter** to review your selection. **Ctrl+F** jumps to search; **Escape** clears it and returns to your workflow. Completing or selecting a command never runs it automatically.
 
 Examples show possibilities; they never run automatically. Fill in your own file names when reviewing an action. You can always see the actual command before running it. Actions that can discard work also show a warning and require confirmation.
+
+When you run an action, **Command results** opens automatically with live output, errors and a clear final status. Commands that return no text still show whether they succeeded. Scroll to read longer output. **Escape** returns to your commands; **F3** or the **Results** button reopens the latest result. **Ctrl+X** or **Stop command** stops a running operation. The embedded live terminal also stays visible in compact windows.
 
 | Workflow | Use it to… |
 | --- | --- |

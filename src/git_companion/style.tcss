@@ -46,6 +46,7 @@ Collapsible > Contents { padding: 1 0 0 1; }
 #console-bar .eyebrow { width: 18; }
 #run-state { width: 1fr; color: #64e8cb; }
 #clear { min-width: 7; height: 1; }
+#show-results { min-width: 9; height: 1; margin-right: 1; }
 #output { height: 7; min-height: 4; background: $surface; border-left: solid #64e8cb; padding: 0 1; }
 Footer { background: $surface; }
 ModalScreen { align: center middle; background: $background 75%; }
@@ -60,11 +61,28 @@ ModalScreen { align: center middle; background: $background 75%; }
 Screen.compact #sidebar { width: 22; }
 Screen.compact #details { display: none; }
 Screen.compact #commands { width: 1fr; }
-Screen.compact #hero { height: 4; }
-Screen.compact #branch-art { padding-top: 0; }
-Screen.compact #wordmark { padding-top: 0; }
-Screen.compact #edition { display: none; }
-Screen.compact #metrics { height: 4; margin: 0 1; }
-Screen.compact #metrics Static { padding: 0 1; }
-Screen.compact #output { height: 6; }
 Screen.compact #body { margin: 0 1; }
+Screen.compact #hero { display: none; }
+Screen.compact #repo { height: 1; }
+Screen.compact #metrics { display: none; }
+Screen.compact #search-tip { margin-bottom: 0; }
+Screen.compact #section { margin-bottom: 0; }
+Screen.compact #browser { min-height: 3; }
+Screen.compact #console-bar { height: 2; padding-top: 0; }
+Screen.compact #output { height: 4; min-height: 2; }
+#results-dialog { width: 96%; height: 94%; border: round $primary; background: $surface; padding: 1 2; }
+#result-title { height: 1; text-style: bold; color: #c6bdff; }
+#result-command { height: auto; max-height: 3; color: #64e8cb; }
+#result-directory { height: 1; color: $text-muted; }
+#result-summary { height: auto; margin: 1 0; text-style: bold; }
+#results-dialog.running #result-summary { color: #8bcaff; }
+#results-dialog.success { border: round #64e8cb; }
+#results-dialog.success #result-summary { color: #64e8cb; }
+#results-dialog.failure { border: round #ff7777; }
+#results-dialog.failure #result-summary { color: #ff7777; }
+#results-dialog.stopped #result-summary { color: #ffcb8b; }
+#result-log { height: 1fr; min-height: 2; background: $background; padding: 0 1; }
+#result-partial { height: auto; max-height: 3; color: $text-muted; }
+#result-controls { height: 3; margin-top: 1; align-horizontal: right; }
+#result-controls Button { margin-left: 1; }
+#result-tip { height: 1; color: $text-muted; }

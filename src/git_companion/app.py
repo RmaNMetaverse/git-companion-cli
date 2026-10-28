@@ -1,5 +1,6 @@
 """The terminal cockpit: browse intent, preview commands, stream real output."""
 
+import asyncio
 import re
 from pathlib import Path
 from typing import ClassVar
@@ -18,6 +19,7 @@ from .bootstrap import bootstrap
 from .catalog import BY_ID, CATEGORIES, COMMANDS, Command, search
 from .discovery import CommandSearch, CommandSuggester
 from .engine import RepoState, Runner, display_command, inspect_repo
+from .results import CommandResult, ResultsScreen
 
 
 def command_help(command: Command) -> str:
@@ -164,6 +166,7 @@ class CompanionApp(App):
         Binding("ctrl+t", "theme", "Theme"),
         Binding("f1", "help", "Help"),
         Binding("f2", "examples", "Examples"),
+        Binding("f3", "results", "Results"),
         Binding("escape", "clear_search", "Back"),
     ]
 
@@ -182,6 +185,9 @@ class CompanionApp(App):
         self.theme = "textual-dark"
         self.detail_command_id = ""
         self.search_mode = False
+        self.last_result: CommandResult | None = None
+        self.collecting_output = False
+        self.cancel_requested = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -226,8 +232,11 @@ class CompanionApp(App):
                 with Horizontal(id="console-bar"):
                     yield Label("LIVE TERMINAL", classes="eyebrow")
                     yield Static("READY", id="run-state", markup=False)
+                    yield Button("Results", id="show-results", compact=True)
                     yield Button("Clear", id="clear", compact=True)
-                yield RichLog(id="output", highlight=False, markup=False, wrap=True, max_lines=2000)
+                yield RichLog(
+                    id="output", min_width=1, highlight=False, markup=False, wrap=True, max_lines=2000
+                )
         yield Footer()
 
     def on_mount(self):
@@ -237,7 +246,7 @@ class CompanionApp(App):
         self.startup()
 
     def on_resize(self, event: Resize):
-        self.screen.set_class(event.size.width < 105 or event.size.height < 34, "compact")
+        self.default_screen.set_class(event.size.width < 105 or event.size.height < 34, "compact")
 
     @work
     async def startup(self):
@@ -263,17 +272,33 @@ class CompanionApp(App):
         if len(self.pending_output) > 8192:
             self.write_output(self.pending_output)
             self.pending_output = ""
+        if self.collecting_output and self.last_result:
+            self.last_result.partial = self.clean_output(self.pending_output)
+            if isinstance(self.screen, ResultsScreen) and self.screen.is_mounted:
+                self.screen.update_partial()
 
-    def write_output(self, line: str):
+    @staticmethod
+    def clean_output(line: str) -> str:
         line = re.sub(r"\x1b\][^\x07]*(?:\x07|\x1b\\)", "", line)
         line = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", line)
-        line = "".join(char for char in line if char == "\t" or ord(char) >= 32)
+        return "".join(char for char in line if char == "\t" or ord(char) >= 32)
+
+    def write_output(self, line: str):
+        line = self.clean_output(line)
         self.query_one("#output", RichLog).write(Text(line))
+        if self.collecting_output and self.last_result:
+            self.last_result.lines.append(line)
+            if isinstance(self.screen, ResultsScreen) and self.screen.is_mounted:
+                self.screen.append_line(line)
 
     def flush_output(self):
         if self.pending_output:
             self.write_output(self.pending_output)
             self.pending_output = ""
+        if self.collecting_output and self.last_result:
+            self.last_result.partial = ""
+            if isinstance(self.screen, ResultsScreen) and self.screen.is_mounted:
+                self.screen.update_partial()
 
     async def periodic_refresh(self):
         if not self.busy and not self.refreshing and not isinstance(self.screen, ModalScreen):
@@ -409,22 +434,66 @@ class CompanionApp(App):
         if self.busy:
             return
         self.busy = True
+        self.cancel_requested = False
+        self.flush_output()
+        self.last_result = CommandResult(display_command(args), str(self.cwd))
+        self.collecting_output = True
+        await self.push_screen(ResultsScreen(self.last_result), self.results_closed)
         self.query_one("#run-state", Static).update("RUNNING  /  Ctrl+X to stop")
         self.emit(f"\n$ {display_command(args)}\n")
+        received_output = False
+
+        def receive(chunk: str):
+            nonlocal received_output
+            received_output = received_output or bool(chunk.strip())
+            self.emit(chunk)
+
+        code = None
         try:
-            code = await self.runner.run(args, self.cwd, self.emit)
+            code = await self.runner.run(args, self.cwd, receive)
             self.flush_output()
-            self.emit(f"\n{'Completed' if code == 0 else 'Failed / stopped'} (exit {code})\n")
-            if code:
-                self.emit(
-                    "For authentication, configure a credential helper or SSH agent in your normal terminal, then retry.\n"
-                )
+            if not received_output:
+                self.emit("The command returned no text output.\n")
+            self.last_result.finish(code, self.cancel_requested)
+            self.emit(f"\n{self.last_result.summary}\n")
+            if code and not self.cancel_requested:
+                self.emit("Read the command's error output above for details.\n")
         except OSError as error:
+            self.flush_output()
             self.emit(f"Unable to run command: {error}\n")
+            self.last_result.finish(None)
+        except asyncio.CancelledError:
+            self.last_result.finish(None, stopped=True)
+            raise
         finally:
+            self.flush_output()
+            self.collecting_output = False
             self.busy = False
-            self.query_one("#run-state", Static).update("READY")
+            self.query_one("#run-state", Static).update(
+                {
+                    "success": "SUCCESS / exit 0",
+                    "failure": "FAILED / see results",
+                    "stopped": "STOPPED",
+                }.get(self.last_result.kind, "STOPPED")
+            )
+            if isinstance(self.screen, ResultsScreen) and self.screen.is_mounted:
+                self.screen.update_summary()
             await self.refresh_state()
+
+    @on(Button.Pressed, "#show-results")
+    def action_results(self):
+        if self.last_result and not isinstance(self.screen, ModalScreen):
+            self.push_screen(ResultsScreen(self.last_result), self.results_closed)
+        elif not self.last_result:
+            self.notify("Run an action to see its results here.")
+
+    def results_closed(self, _result=None):
+        self.call_after_refresh(
+            self.query_one("#output", RichLog).scroll_end,
+            animate=False,
+            force=True,
+            x_axis=False,
+        )
 
     def action_search(self):
         self.search_mode = True
@@ -464,6 +533,7 @@ class CompanionApp(App):
 
     async def action_cancel(self):
         if self.busy:
+            self.cancel_requested = True
             await self.runner.cancel()
 
     async def action_quit(self):
@@ -483,6 +553,7 @@ class CompanionApp(App):
             "Ctrl+O changes workspace; Ctrl+R refreshes; Ctrl+T changes theme.\n"
             "Ctrl+X stops a process; Ctrl+Q quits. Mouse navigation also works.\n"
             "F2 opens optional details and two examples for the selected action.\n"
+            "Commands open live results automatically. F3 reopens the latest result.\n"
             "Every command is previewed. Destructive operations require typing RUN.\n"
             "Git handles credentials through your configured helper or SSH agent.\n"
             "No embedded editor: commit and tag messages are entered in forms.\n"

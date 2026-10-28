@@ -1,0 +1,55 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:05.478
+Git + Git LFS. One companion.
+
+00:00:05.478 --> 00:00:08.870
+Find your workflow. Nine categories group useful commands by intent.
+
+00:00:08.870 --> 00:00:11.217
+Save your work: stage, commit and stash.
+
+00:00:11.217 --> 00:00:13.565
+Try ideas: switch, merge and rebase.
+
+00:00:13.565 --> 00:00:15.913
+Large files: track, transfer and verify with Git LFS.
+
+00:00:15.913 --> 00:00:18.261
+Reclaim space: preview, prune and clean.
+
+00:00:18.261 --> 00:00:22.174
+Learn the map. A practical command library to explore at your own pace.
+
+00:00:22.174 --> 00:00:25.304
+Search every workflow by task, command or flag.
+
+00:00:25.304 --> 00:00:30.261
+Start typing. Press Tab to accept autocomplete. You choose when to run.
+
+00:00:30.261 --> 00:00:33.261
+Review the real command before execution.
+
+00:00:33.261 --> 00:00:36.652
+Run it. See real output and a clear result.
+
+00:00:36.652 --> 00:00:39.522
+Preview cleanup with git lfs prune --dry-run.
+
+00:00:39.522 --> 00:00:42.130
+Every action has a short plain-language hint.
+
+00:00:42.130 --> 00:00:46.304
+Expand examples to learn what a command means.
+
+00:00:46.304 --> 00:00:49.565
+74 curated actions. 148 expandable examples. Explore before you execute.
+
+00:00:49.565 --> 00:00:52.174
+Look around. Share and sync. Recover. Set up.
+
+00:00:52.174 --> 00:00:55.174
+Windows, macOS and Linux. Run setup, reopen your terminal, type git-companion.
+
+00:00:55.174 --> 00:01:00.000
+Git Companion. Find it. Learn it. Run it.

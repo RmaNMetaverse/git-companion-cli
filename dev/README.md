@@ -20,6 +20,8 @@ Every catalog action has one hint of at most 90 characters and two validated exa
 
 Command discovery indexes every action's ID, friendly name, hint, description, full `git` syntax, flags, workflow name and examples. Full command and prefix matches rank above descriptive matches; otherwise equivalent matches prefer previews over destructive actions. `CommandSearch` uses Textual's inline suggestion renderer, with Tab/Right acceptance and Down navigation to the live results. Ctrl+F opens the complete catalog even with an empty query. Enter only opens the selected action's review form; no typed search text is passed to a shell. Argument placeholders are left to the review fields, rather than being filled by autocomplete.
 
+Each execution opens a `ResultsScreen` backed by a `CommandResult` retaining up to 2,000 sanitized lines for the latest command. Both stdout and stderr stream into it and into the embedded terminal; unterminated output is shown live in a separate partial-line area. Exit code, duration and explicit success/failure/stopped states remain visible. Silent commands receive a no-output message. F3 reopens the latest result, including while its process is still running. Results are retained in memory for this app session only. Compact layout hides decorative panels so the embedded terminal remains within an 80×24 viewport. End-to-end UI tests run actual Git commands through review and execution at both compact and wide sizes.
+
 A colorful, keyboard-first terminal cockpit for **Git + Git LFS**, built around what you want to do next.
 
 Branch artwork, a lavender/mint/amber palette, live repository metrics, searchable actions, command previews, mouse support, responsive panels, dark/light themes, and streamed command output. Works from a terminal on Windows, Linux, and macOS. Setup handles Python and the app's dependencies automatically.
@@ -153,3 +155,7 @@ python -m dev.tools.build_installers dev/artifacts/git_companion_cli-0.1.0-py3-n
 The build workflow uploads the three scripts and their checksum manifest together. It also packages an archive that preserves the macOS/Linux executable bits. End-user setup files embed a regular wheel, **not** an editable installation tied to this source folder. A wheel (`.whl`) is Python's package archive format; it is an internal setup payload here, not something beginners need to install manually.
 
 The CLI has no embedded file editor, interactive Git patch selection, or general-purpose shell. The forms expose curated, frequently useful workflows rather than every possible Git flag. Native OS installs and packaged executables should be validated on clean machines before a release.
+
+## Video teasers
+
+Both finished teasers, animated README previews and captions are in `dev/media/`. See the [media guide](media/README.md) for production methods and reproducible rendering commands. The second edit uses original sound effects only and highlights the sidebar command library, search, autocomplete, command results and expandable examples. Rendering tools stay in `dev/tools/`, with intermediate assets ignored under `dev/artifacts/`.

@@ -33,6 +33,16 @@ async def main():
         field.cursor_position = len(field.value)
         await pilot.pause()
         print(app.save_screenshot("search.svg", path=output))
+        app.execute_command(["git", "status", "--short", "--branch"])
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+        print(app.save_screenshot("results.svg", path=output))
+        await pilot.resize_terminal(80, 24)
+        await pilot.pause()
+        print(app.save_screenshot("results-compact.svg", path=output))
+        await pilot.press("escape")
+        await pilot.pause()
+        print(app.save_screenshot("terminal-compact.svg", path=output))
 
 
 if __name__ == "__main__":
